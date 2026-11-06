@@ -1,0 +1,14 @@
+{
+  "name": "sistema-nfe-escolar",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Escola Teste NF-e — HTML/CSS/JS + servidor com proxy Focus NF",
+  "scripts": {
+    "start": "node server.mjs",
+    "dev": "node server.mjs"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

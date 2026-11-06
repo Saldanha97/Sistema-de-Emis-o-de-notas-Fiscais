@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Escola Teste · NF-e — Módulo Fiscal Escolar</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.34.0/dist/tabler-icons.min.css" crossorigin="anonymous">
+<link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+<div id="notif"></div>
+<div id="sec-top" class="sec-top" role="status"></div>
+
+<div class="app">
+<div class="sidebar">
+  <div class="logo">
+    <div class="logo-title"><i class="ti ti-school" aria-hidden="true" style="color:#185FA5"></i> Escola Teste · NF-e</div>
+    <div class="logo-sub">Módulo Fiscal Escolar</div>
+  </div>
+  <div class="sede-sel">
+    <div class="sede-label">Unidade ativa</div>
+    <select class="sede-select" id="sede-global" onchange="changeSede()">
+      <option value="1">Unidade 1 — Escola Teste</option>
+      <option value="2">Unidade 2 — Escola Teste</option>
+      <option value="3">Unidade 3 — Escola Teste</option>
+    </select>
+  </div>
+  <div class="nav-section">Dashboard</div>
+  <div class="nav-item active" onclick="go('dashboard')"><i class="ti ti-layout-dashboard" aria-hidden="true"></i> Visão geral</div>
+  <div class="nav-section">Fiscal</div>
+  <div class="nav-item" onclick="go('venda')"><i class="ti ti-receipt" aria-hidden="true"></i> Nova venda / NF-e</div>
+  <div class="nav-item" onclick="go('nfce')"><i class="ti ti-receipt-2" aria-hidden="true"></i> Fardamento / NF-Ce</div>
+  <div class="nav-item" onclick="go('entrada')"><i class="ti ti-package-import" aria-hidden="true"></i> Entrada (Diádico)</div>
+  <div class="nav-item" onclick="go('hist')"><i class="ti ti-history" aria-hidden="true"></i> Histórico de NF</div>
+  <div class="nav-section">Cadastros</div>
+  <div class="nav-item" onclick="go('kits')"><i class="ti ti-books" aria-hidden="true"></i> Kits escolares</div>
+  <div class="nav-item" onclick="go('livros')"><i class="ti ti-book-2" aria-hidden="true"></i> Livros / Produtos</div>
+  <div class="nav-item" onclick="go('alunos')"><i class="ti ti-users" aria-hidden="true"></i> Alunos / Matrículas</div>
+  <div class="nav-section">Estoque</div>
+  <div class="nav-item" onclick="go('estoque')"><i class="ti ti-building-warehouse" aria-hidden="true"></i> Estoque por unidade</div>
+  <div class="nav-section">Configurações</div>
+  <div class="nav-item" onclick="go('config')"><i class="ti ti-settings" aria-hidden="true"></i> Focus NF / Fiscal</div>
+  <div class="nav-item" onclick="go('supabase')"><i class="ti ti-database" aria-hidden="true"></i> Supabase (Estoque)</div>
+</div>
+
+<div class="main">
+
+<!-- DASHBOARD -->
+<div class="page active" id="page-dashboard">
+  <div class="pg-head">
+    <div class="pg-title">Visão geral</div>
+    <div class="pg-sub" id="dash-sede-sub">Unidade 1 — Escola Teste</div>
+  </div>
+  <div class="metrics">
+    <div class="metric"><div class="metric-label">NF-e emitidas</div><div class="metric-value" id="d-nf">0</div><div class="metric-sub">total autorizadas</div></div>
+    <div class="metric"><div class="metric-label">Valor emitido</div><div class="metric-value" id="d-val">R$ 0</div><div class="metric-sub">nesta unidade</div></div>
+    <div class="metric"><div class="metric-label">Alunos ativos</div><div class="metric-value" id="d-alunos">0</div><div class="metric-sub">com matrícula</div></div>
+    <div class="metric"><div class="metric-label">Alertas estoque</div><div class="metric-value" id="d-alerta">0</div><div class="metric-sub">abaixo do mínimo</div></div>
+  </div>
+  <div class="g2">
+    <div class="card"><div class="card-title">Últimas NF emitidas</div><div id="d-ultimas"><div class="empty">Nenhuma NF emitida ainda</div></div></div>
+    <div class="card">
+      <div class="card-title">Estoque crítico — <span id="d-sede-label">Unidade 1</span></div>
+      <div id="d-estq-crit"><div class="empty">Nenhum alerta</div></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Status Focus NF</div>
+    <div class="focus-status"><i class="ti ti-plug-connected" aria-hidden="true"></i> Ambiente: <strong>Homologação</strong> · Configure a integração nas preferências</div>
+    <div style="font-size:12px;color:var(--color-text-tertiary)">Configure o ambiente de produção em <strong>Configurações → Focus NF</strong> antes do go-live.</div>
+  </div>
+</div>
+
+<!-- NOVA VENDA / NF-e -->
+<div class="page" id="page-venda">
+  <div class="pg-head">
+    <div class="pg-title">Nova venda — Emissão de NF-e</div>
+    <div class="pg-sub">Venda de kit para pai/responsável · integração Focus NF</div>
+  </div>
+  <div class="g2">
+    <div>
+      <div class="card">
+        <div class="card-title">1. Buscar cliente (pai/responsável)</div>
+        <div class="f"><label>Buscar por nome, CPF ou código</label>
+          <select id="v-resp" onchange="selecionarResp()"><option value="">Selecione o responsável...</option></select>
+        </div>
+        <div id="v-matriculas-box" style="display:none">
+          <div style="font-size:12px;font-weight:500;color:var(--color-text-secondary);margin-bottom:6px">Matrículas vinculadas:</div>
+          <div id="v-matriculas"></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">2. Kit sugerido / itens</div>
+        <div id="v-kit-sugestao" style="margin-bottom:10px"></div>
+        <div class="f"><label>Adicionar livro avulso</label>
+          <select id="v-livro"><option value="">Selecione...</option></select>
+        </div>
+        <div class="g2" style="margin-bottom:10px">
+          <div class="f"><label>Qtd</label><input type="number" id="v-qtd" value="1" min="1"></div>
+          <div class="f"><label>Preço (R$)</label><input type="number" id="v-preco" step="0.01"></div>
+        </div>
+        <button class="btn btn-p btn-sm" onclick="addItemVenda()"><i class="ti ti-plus" aria-hidden="true"></i> Adicionar</button>
+        <div style="margin-top:10px" id="v-itens-list"><div class="empty" style="padding:12px">Nenhum item</div></div>
+      </div>
+    </div>
+    <div>
+      <div class="card">
+        <div class="card-title">3. Dados fiscais e pagamento</div>
+        <div class="f"><label>Unidade emissora</label>
+          <select id="v-sede">
+            <option value="1">Unidade 1 — Escola Teste</option>
+            <option value="2">Unidade 2 — Escola Teste</option>
+            <option value="3">Unidade 3 — Escola Teste</option>
+          </select>
+        </div>
+        <div class="f"><label>Natureza da operação</label>
+          <select id="v-nat">
+            <option value="saida">VENDA DE MERCADORIA ADQUIRIDA OU RECEBIDA DE TERCEIROS</option>
+            <option value="cupom">VENDA A CONSUMIDOR FINAL (NFC-e)</option>
+          </select>
+        </div>
+        <div class="f"><label>Forma de pagamento</label>
+          <select id="v-pgto"><option>Dinheiro</option><option>PIX</option><option>Cartão de Débito</option><option>Cartão de Crédito</option><option>Boleto</option></select>
+        </div>
+        <div class="f"><label>Informações adicionais</label>
+          <textarea id="v-obs" rows="2" style="resize:none" placeholder="Ex: Ref NF 18596 · Venda de kit de livros didáticos"></textarea>
+        </div>
+        <div id="v-dest-block" style="display:none;margin-top:10px;padding-top:10px;border-top:0.5px solid var(--color-border-tertiary)">
+          <div style="font-size:12px;font-weight:500;color:var(--color-text-secondary);margin-bottom:6px">Destinatário (produção)</div>
+          <div class="f"><label>Nome / razão social</label><input type="text" id="v-dest-nome" placeholder="Nome completo"></div>
+          <div class="g2">
+            <div class="f"><label>CPF</label><input type="text" id="v-dest-cpf" placeholder="Somente números"></div>
+            <div class="f"><label>CNPJ (se PJ)</label><input type="text" id="v-dest-cnpj" placeholder="Opcional"></div>
+          </div>
+          <div class="f"><label>Telefone</label><input type="text" id="v-dest-fone" placeholder="85999999999"></div>
+          <div class="g2">
+            <div class="f"><label>Logradouro</label><input type="text" id="v-dest-logr" placeholder="Rua, avenida..."></div>
+            <div class="f"><label>Número</label><input type="text" id="v-dest-num" placeholder="123"></div>
+          </div>
+          <div class="g2">
+            <div class="f"><label>Bairro</label><input type="text" id="v-dest-bai"></div>
+            <div class="f"><label>CEP</label><input type="text" id="v-dest-cep" placeholder="60115125"></div>
+          </div>
+          <div class="g2">
+            <div class="f"><label>Município</label><input type="text" id="v-dest-mun" placeholder="Fortaleza"></div>
+            <div class="f"><label>UF</label><input type="text" id="v-dest-uf" maxlength="2" placeholder="CE"></div>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="trow"><span>Produtos</span><span id="v-sub">R$ 0,00</span></div>
+        <div class="trow"><span>Desconto</span>
+          <div style="display:flex;align-items:center;gap:6px"><input type="number" id="v-desc" value="0" min="0" style="width:65px" oninput="calcVenda()"><span style="font-size:12px;color:var(--color-text-tertiary)">%</span></div>
+        </div>
+        <div class="trow"><span style="font-size:12px;color:var(--color-text-tertiary)">Tributos aprox. (IBPT)</span><span id="v-trib" style="font-size:12px;color:var(--color-text-tertiary)">R$ 0,00</span></div>
+        <div class="trow grand"><span>TOTAL NF-e</span><span id="v-tot" style="color:#0F6E56;font-size:17px">R$ 0,00</span></div>
+        <div style="display:flex;gap:8px;margin-top:12px">
+          <button class="btn btn-sm" onclick="limparVenda()"><i class="ti ti-trash" aria-hidden="true"></i></button>
+          <button type="button" class="btn btn-s" id="btn-transmitir" style="flex:1" onclick="emitirNF()"><i class="ti ti-send" aria-hidden="true"></i> Transmitir para Focus NF</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ENTRADA DIÁDICO -->
+<div class="page" id="page-entrada">
+  <div class="pg-head">
+    <div class="pg-title">Entrada de mercadoria — Diádico</div>
+    <div class="pg-sub">Registre NF-e de compra e atualize estoque da unidade</div>
+  </div>
+  <div class="g2">
+    <div class="card">
+      <div class="card-title">Nova entrada (RF-01 a RF-05)</div>
+      <div class="alert"><i class="ti ti-info-circle" aria-hidden="true" style="flex-shrink:0;margin-top:1px"></i><span>Informe a chave de acesso da NF-e do fornecedor Diádico ou importe o XML para validação automática dos itens.</span></div>
+      <div class="f"><label>Chave de acesso da NF-e do fornecedor</label>
+        <input type="text" id="e-chave" placeholder="00000000000000000000000000000000000000000000" maxlength="44">
+      </div>
+      <div class="f"><label>Fornecedor</label><input type="text" id="e-forn" value="DIÁDICO EDITORA" readonly style="background:var(--color-background-secondary)"></div>
+      <div class="f"><label>Unidade destino do estoque</label>
+        <select id="e-sede">
+          <option value="1">Unidade 1 — Escola Teste</option>
+          <option value="2">Unidade 2 — Escola Teste</option>
+          <option value="3">Unidade 3 — Escola Teste</option>
+        </select>
+      </div>
+      <div class="f"><label>Produto / Livro</label>
+        <select id="e-livro"><option value="">Selecione...</option></select>
+      </div>
+      <div class="g3">
+        <div class="f"><label>Qtd recebida</label><input type="number" id="e-qtd" value="1" min="1"></div>
+        <div class="f"><label>Custo unit. (R$)</label><input type="number" id="e-custo" step="0.01"></div>
+        <div class="f"><label>Preço venda (R$)</label><input type="number" id="e-pvenda" step="0.01"></div>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-p btn-sm" onclick="addItemEntrada()"><i class="ti ti-plus" aria-hidden="true"></i> Adicionar item</button>
+        <button class="btn btn-s" onclick="confirmarEntrada()"><i class="ti ti-package-import" aria-hidden="true"></i> Confirmar entrada</button>
+      </div>
+      <div id="e-itens-list" style="margin-top:10px"><div class="empty" style="padding:12px">Nenhum item adicionado</div></div>
+    </div>
+    <div class="card"><div class="card-title">Entradas recentes</div><div id="e-hist"><div class="empty">Nenhuma entrada registrada</div></div></div>
+  </div>
+</div>
+
+<!-- HISTÓRICO NF -->
+<div class="page" id="page-hist">
+  <div class="pg-head">
+    <div class="pg-title">Histórico de notas fiscais</div>
+    <div class="pg-sub">Consulte, visualize DANFE, cancele, consulte na SEFAZ e envie por e-mail</div>
+  </div>
+  <div class="card" style="margin-bottom:10px">
+    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">
+      <div class="f" style="margin:0;min-width:140px"><label>Unidade</label>
+        <select id="h-sede-fil"><option value="">Todas as unidades</option><option value="1">Unidade 1</option><option value="2">Unidade 2</option><option value="3">Unidade 3</option></select>
+      </div>
+      <div class="f" style="margin:0;min-width:120px"><label>Status</label>
+        <select id="h-status-fil"><option value="">Todos</option><option value="Autorizada">Autorizada</option><option value="Cancelada">Cancelada</option><option value="Rejeitada">Rejeitada</option></select>
+      </div>
+      <button class="btn btn-sm" onclick="filtrarHist()"><i class="ti ti-filter" aria-hidden="true"></i> Filtrar</button>
+    </div>
+  </div>
+  <div class="card"><div id="hist-tbl"><div class="empty">Nenhuma NF emitida</div></div></div>
+  <div id="nf-viewer"></div>
+</div>
+
+<!-- KITS ESCOLARES -->
+<div class="page" id="page-kits">
+  <div class="pg-head">
+    <div class="pg-title">Kits escolares</div>
+    <div class="pg-sub">Configure Kit 1, Kit 2 e Kit 3 por série e ano letivo (RF-14 a RF-17)</div>
+  </div>
+  <div class="g2">
+    <div class="card">
+      <div class="card-title">Novo kit</div>
+      <div class="f"><label>Nome do kit</label><input type="text" id="k-nome" placeholder="Ex: Kit 1 — Ensino Fundamental I"></div>
+      <div class="g2">
+        <div class="f"><label>Número (1, 2 ou 3)</label><select id="k-num"><option value="1">Kit 1</option><option value="2">Kit 2</option><option value="3">Kit 3</option></select></div>
+        <div class="f"><label>Ano letivo</label><input type="number" id="k-ano" value="2026" min="2024"></div>
+      </div>
+      <div class="f"><label>Séries vinculadas</label><input type="text" id="k-series" placeholder="Ex: 1º ao 3º ano EF"></div>
+      <div class="f"><label>Adicionar livro ao kit</label>
+        <select id="k-livro"><option value="">Selecione...</option></select>
+      </div>
+      <div class="g2" style="margin-bottom:8px">
+        <div class="f"><label>Qtd</label><input type="number" id="k-qtd" value="1" min="1"></div>
+        <div class="f"><label>Preço tabela (R$)</label><input type="number" id="k-preco" step="0.01"></div>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-p btn-sm" onclick="addLivroKit()"><i class="ti ti-plus" aria-hidden="true"></i> Livro</button>
+        <button class="btn btn-s" onclick="salvarKit()"><i class="ti ti-device-floppy" aria-hidden="true"></i> Salvar kit</button>
+      </div>
+      <div id="k-livros-list" style="margin-top:10px"><div class="empty" style="padding:10px">Nenhum livro no kit</div></div>
+    </div>
+    <div class="card"><div class="card-title">Kits cadastrados</div><div id="kits-list"><div class="empty">Nenhum kit cadastrado</div></div></div>
+  </div>
+</div>
+
+<!-- LIVROS / PRODUTOS -->
+<div class="page" id="page-livros">
+  <div class="pg-head">
+    <div class="pg-title">Livros / Produtos</div>
+    <div class="pg-sub">Cadastre livros com NCM, CFOP, CST (imunidade ICMS para livros)</div>
+  </div>
+  <div class="g2">
+    <div class="card">
+      <div class="card-title">Novo livro</div>
+      <div class="f"><label>Título do livro</label><input type="text" id="l-nome" placeholder="Ex: COLECAO SPE EF2 8 ANO VOL 2 ALUNO"></div>
+      <div class="g2">
+        <div class="f"><label>Código / SKU</label><input type="text" id="l-sku" placeholder="0000000000182"></div>
+        <div class="f"><label>Série escolar</label><input type="text" id="l-serie" placeholder="8º ano EF"></div>
+      </div>
+      <div class="g3">
+        <div class="f"><label>Custo (R$)</label><input type="number" id="l-custo" step="0.01"></div>
+        <div class="f"><label>Preço (R$)</label><input type="number" id="l-preco" step="0.01"></div>
+        <div class="f"><label>Estoque mín.</label><input type="number" id="l-min" value="5"></div>
+      </div>
+      <div class="g3">
+        <div class="f"><label>NCM</label><input type="text" id="l-ncm" value="49019900"></div>
+        <div class="f"><label>CFOP saída</label><input type="text" id="l-cfop" value="5117"></div>
+        <div class="f"><label>CST/CSOSN</label><input type="text" id="l-cst" value="41" placeholder="41=isento"></div>
+      </div>
+      <div style="background:#EAF3DE;border-radius:6px;padding:8px 10px;font-size:12px;color:#27500A;margin-bottom:10px">
+        <i class="ti ti-check" aria-hidden="true"></i> Livros têm <strong>imunidade de ICMS</strong> (CF art. 150, VI, d) e alíquota zero de PIS/COFINS
+      </div>
+      <button class="btn btn-p" onclick="cadLivro()"><i class="ti ti-plus" aria-hidden="true"></i> Cadastrar</button>
+    </div>
+    <div class="card"><div class="card-title">Livros cadastrados</div><div id="livros-list"><div class="empty">Nenhum livro</div></div></div>
+  </div>
+</div>
+
+<!-- ALUNOS / MATRÍCULAS -->
+<div class="page" id="page-alunos">
+  <div class="pg-head">
+    <div class="pg-title">Alunos e matrículas</div>
+    <div class="pg-sub">Dados do sistema Lovable — responsáveis vinculados a alunos por série</div>
+  </div>
+  <div class="g2">
+    <div class="card">
+      <div class="card-title">Novo aluno / matrícula</div>
+      <div class="f"><label>Nome do aluno</label><input type="text" id="a-nome" placeholder="Nome completo do aluno"></div>
+      <div class="g2">
+        <div class="f"><label>Série</label>
+          <select id="a-serie">
+            <option>1º ano EF</option><option>2º ano EF</option><option>3º ano EF</option>
+            <option>4º ano EF</option><option>5º ano EF</option><option>6º ano EF</option>
+            <option>7º ano EF</option><option>8º ano EF</option><option>9º ano EF</option>
+            <option>1º ano EM</option><option>2º ano EM</option><option>3º ano EM</option>
+          </select>
+        </div>
+        <div class="f"><label>Unidade</label>
+          <select id="a-sede"><option value="1">Unidade 1</option><option value="2">Unidade 2</option><option value="3">Unidade 3</option></select>
+        </div>
+      </div>
+      <div class="f"><label>Nome do responsável (pai/mãe)</label><input type="text" id="a-resp" placeholder="Nome do pai ou responsável"></div>
+      <div class="g2">
+        <div class="f"><label>CPF do responsável</label><input type="text" id="a-cpf" placeholder="000.000.000-00"></div>
+        <div class="f"><label>E-mail</label><input type="text" id="a-email" placeholder="responsavel@email.com"></div>
+      </div>
+      <div class="f"><label>Telefone</label><input type="text" id="a-fone" placeholder="(85) 99999-0000"></div>
+      <button class="btn btn-p" onclick="cadAluno()"><i class="ti ti-plus" aria-hidden="true"></i> Cadastrar</button>
+    </div>
+    <div class="card"><div class="card-title">Matrículas</div><div id="alunos-list"><div class="empty">Nenhuma matrícula</div></div></div>
+  </div>
+</div>
+
+<!-- ESTOQUE POR SEDE -->
+<div class="page" id="page-estoque">
+  <div class="pg-head">
+    <div class="pg-title">Estoque por unidade</div>
+    <div class="pg-sub">Posição atual, entradas, saídas e transferências (RF-18 a RF-22)</div>
+  </div>
+  <div class="card" style="margin-bottom:10px">
+    <div style="display:flex;gap:10px;align-items:flex-end">
+      <div class="f" style="margin:0"><label>Exibir unidade</label>
+        <select id="est-sede-fil" onchange="renderEstoque()">
+          <option value="0">Todas as unidades</option><option value="1">Unidade 1 — Escola Teste</option><option value="2">Unidade 2 — Escola Teste</option><option value="3">Unidade 3 — Escola Teste</option>
+        </select>
+      </div>
+    </div>
+  </div>
+  <div id="estq-grid"></div>
+</div>
+
+<!-- CONFIG FOCUS NF -->
+<div class="page" id="page-config">
+  <div class="pg-head">
+    <div class="pg-title">Configurações — Focus NF e dados fiscais</div>
+    <div class="pg-sub">Credenciais de API, ambiente e dados da empresa emissora</div>
+  </div>
+  <div class="g2">
+    <div class="card">
+      <div class="card-title">Integração Focus NF (RF-27 a RF-31)</div>
+      <div class="f"><label>Token de acesso (API Key)</label><input type="password" id="cfg-token" autocomplete="off" placeholder="Cole o token (não é guardado no ficheiro HTML)"></div>
+      <div class="f" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+        <label style="display:flex;align-items:center;gap:6px;margin:0;cursor:pointer;font-size:12px"><input type="checkbox" id="cfg-persist"> Guardar token neste PC (localStorage — menos seguro)</label>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
+        <button type="button" class="btn btn-sm" onclick="saveCfg()"><i class="ti ti-device-floppy" aria-hidden="true"></i> Guardar token e preferências</button>
+        <button type="button" class="btn btn-sm" onclick="clearToken()"><i class="ti ti-key-off" aria-hidden="true"></i> Apagar token</button>
+      </div>
+      <div class="f"><label>URL do proxy CORS (opcional)</label>
+        <input type="text" id="cfg-proxy" placeholder="http://127.0.0.1:8787/proxy" autocomplete="off">
+        <div style="font-size:11px;color:var(--color-text-tertiary);margin-top:4px">Com <strong>npm start</strong> nesta pasta, deixe em branco — o servidor encaminha para a Focus em <code>/api/focus</code>. Opcional: proxy externo (ex. <code>focus-cors-proxy.mjs</code>).</div>
+      </div>
+      <div class="f"><label>Ambiente</label>
+        <select id="cfg-amb" onchange="refreshCfgUrl();toggleDestBlock();">
+          <option value="hom">Homologação (testes)</option>
+          <option value="prod">Produção</option>
+        </select>
+      </div>
+      <div style="background:#FAEEDA;border-radius:6px;padding:8px 10px;font-size:12px;color:#633806;margin-bottom:10px">
+        <i class="ti ti-alert-triangle" aria-hidden="true"></i> Ative produção somente após validação completa com o contador e testes em homologação. Em homologação a SEFAZ exige destinatário padrão — o sistema envia automaticamente.
+      </div>
+      <div class="f"><label>URL efetiva da API (somente leitura)</label><input type="text" id="cfg-url" value="" readonly style="background:var(--color-background-secondary);font-size:12px"></div>
+      <div class="f"><label>Exportar / importar dados locais (sem token)</label>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button type="button" class="btn btn-sm" onclick="exportDb()"><i class="ti ti-download" aria-hidden="true"></i> Exportar JSON</button>
+          <button type="button" class="btn btn-sm" onclick="document.getElementById('imp-file').click()"><i class="ti ti-upload" aria-hidden="true"></i> Importar JSON</button>
+          <input type="file" id="imp-file" accept="application/json" style="display:none" onchange="importDb(event)">
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Dados fiscais da Escola Teste</div>
+      <div class="f"><label>Razão Social</label><input type="text" id="cfg-nome" value="ESCOLA TESTE"></div>
+      <div class="f"><label>Nome Fantasia</label><input type="text" id="cfg-fant" value="ESCOLA TESTE"></div>
+      <div class="g2">
+        <div class="f"><label>CNPJ (Unidade 1)</label><input type="text" id="cfg-cnpj1" value=""></div>
+        <div class="f"><label>IE (Unidade 1)</label><input type="text" id="cfg-ie1" value=""></div>
+      </div>
+      <div class="g2">
+        <div class="f"><label>Regime Tributário</label><select id="cfg-reg"><option>Simples Nacional (CRT 1)</option><option>Lucro Presumido (CRT 3)</option></select></div>
+        <div class="f"><label>Série NF-e</label><input type="text" id="cfg-serie" value="1"></div>
+      </div>
+      <div class="f"><label>Endereço (Unidade 1)</label><input type="text" id="cfg-end" value=""></div>
+    </div>
+  </div>
+</div>
+
+
+<!-- FARDAMENTO / NF-Ce -->
+<div class="page" id="page-nfce">
+  <div class="pg-head">
+    <div class="pg-title">Venda de Fardamento — Emissão de NF-Ce</div>
+    <div class="pg-sub">Cupom fiscal eletrônico para consumidor final · integração Focus NF</div>
+  </div>
+  <div class="g2">
+    <div>
+      <div class="card">
+        <div class="card-title">1. Dados do comprador (opcional)</div>
+        <div class="f"><label>Nome do comprador</label><input type="text" id="nfce-dest-nome" placeholder="Consumidor Final (opcional)"></div>
+        <div class="g2">
+          <div class="f"><label>CPF (opcional)</label><input type="text" id="nfce-dest-cpf" placeholder="Somente números"></div>
+          <div class="f"><label>E-mail (opcional)</label><input type="text" id="nfce-dest-email" placeholder="Para envio do cupom"></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">2. Itens do fardamento</div>
+        <div class="f"><label>Adicionar produto de fardamento</label>
+          <select id="nfce-prod"><option value="">Selecione...</option></select>
+        </div>
+        <div class="g2" style="margin-bottom:10px">
+          <div class="f"><label>Qtd</label><input type="number" id="nfce-qtd" value="1" min="1"></div>
+          <div class="f"><label>Preço (R$)</label><input type="number" id="nfce-preco" step="0.01"></div>
+        </div>
+        <button class="btn btn-p btn-sm" onclick="addItemNfce()"><i class="ti ti-plus" aria-hidden="true"></i> Adicionar</button>
+        <div style="margin-top:10px" id="nfce-itens-list"><div class="empty" style="padding:12px">Nenhum item</div></div>
+      </div>
+    </div>
+    <div>
+      <div class="card">
+        <div class="card-title">3. Dados fiscais e pagamento</div>
+        <div class="f"><label>Unidade emissora</label>
+          <select id="nfce-sede">
+            <option value="1">Unidade 1 — Escola Teste</option>
+            <option value="2">Unidade 2 — Escola Teste</option>
+            <option value="3">Unidade 3 — Escola Teste</option>
+          </select>
+        </div>
+        <div class="f"><label>Forma de pagamento</label>
+          <select id="nfce-pgto">
+            <option value="01">Dinheiro</option>
+            <option value="17">PIX</option>
+            <option value="04">Cartão de Débito</option>
+            <option value="03">Cartão de Crédito</option>
+          </select>
+        </div>
+        <div class="f"><label>Informações adicionais</label>
+          <textarea id="nfce-obs" rows="2" style="resize:none" placeholder="Ex: Venda de fardamento escolar"></textarea>
+        </div>
+      </div>
+      <div class="card">
+        <div class="trow"><span>Produtos</span><span id="nfce-sub">R$ 0,00</span></div>
+        <div class="trow"><span>Desconto</span>
+          <div style="display:flex;align-items:center;gap:6px"><input type="number" id="nfce-desc" value="0" min="0" style="width:65px" oninput="calcNfce()"><span style="font-size:12px;color:var(--color-text-tertiary)">%</span></div>
+        </div>
+        <div class="trow grand"><span>TOTAL NF-Ce</span><span id="nfce-tot" style="color:#0F6E56;font-size:17px">R$ 0,00</span></div>
+        <div style="display:flex;gap:8px;margin-top:12px">
+          <button class="btn btn-sm" onclick="limparNfce()"><i class="ti ti-trash" aria-hidden="true"></i></button>
+          <button type="button" class="btn btn-s" id="btn-transmitir-nfce" style="flex:1" onclick="emitirNFCe()"><i class="ti ti-send" aria-hidden="true"></i> Transmitir NF-Ce para Focus NF</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- Histórico NF-Ce -->
+  <div class="card" style="margin-top:8px">
+    <div class="card-title">Histórico de NF-Ce emitidas</div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-bottom:10px">
+      <div class="f" style="margin:0;min-width:120px"><label>Status</label>
+        <select id="nfce-hist-fil"><option value="">Todos</option><option value="Autorizada">Autorizada</option><option value="Cancelada">Cancelada</option></select>
+      </div>
+      <button class="btn btn-sm" onclick="filtrarHistNfce()"><i class="ti ti-filter" aria-hidden="true"></i> Filtrar</button>
+    </div>
+    <div id="nfce-hist-tbl"><div class="empty">Nenhuma NF-Ce emitida</div></div>
+  </div>
+  <div id="nfce-viewer"></div>
+</div>
+
+<!-- SUPABASE CONFIG PAGE -->
+<div class="page" id="page-supabase">
+  <div class="pg-head">
+    <div class="pg-title">Supabase — Configuração de Estoque em Nuvem</div>
+    <div class="pg-sub">Conecte ao Supabase para sincronizar estoque entre unidades em tempo real</div>
+  </div>
+  <div class="g2">
+    <div class="card">
+      <div class="card-title">Credenciais Supabase</div>
+      <div class="alert"><i class="ti ti-info-circle" aria-hidden="true" style="flex-shrink:0;margin-top:1px"></i><span>Configure posteriormente quando o projeto Supabase for criado. Enquanto isso, o estoque funciona localmente (localStorage).</span></div>
+      <div class="f"><label>URL do projeto Supabase</label>
+        <input type="text" id="sb-url" placeholder="https://xxxx.supabase.co" autocomplete="off">
+      </div>
+      <div class="f"><label>Anon Key (chave pública)</label>
+        <input type="password" id="sb-key" placeholder="eyJhbGciOi..." autocomplete="off">
+      </div>
+      <div class="f"><label>Service Role Key (opcional — operações server-side)</label>
+        <input type="password" id="sb-service" placeholder="eyJhbGciOi..." autocomplete="off">
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px">
+        <button type="button" class="btn btn-p btn-sm" onclick="saveSbCfg()"><i class="ti ti-device-floppy" aria-hidden="true"></i> Salvar credenciais</button>
+        <button type="button" class="btn btn-sm" onclick="testSupabase()"><i class="ti ti-plug-connected" aria-hidden="true"></i> Testar conexão</button>
+        <button type="button" class="btn btn-sm" onclick="clearSbCfg()"><i class="ti ti-key-off" aria-hidden="true"></i> Apagar credenciais</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Status da integração</div>
+      <div id="sb-status-box">
+        <div class="alert"><i class="ti ti-clock" aria-hidden="true" style="flex-shrink:0;margin-top:1px"></i><span>Aguardando configuração. O sistema usa <strong>armazenamento local</strong> até a integração ser ativada.</span></div>
+      </div>
+      <div style="margin-top:12px">
+        <div class="card-title" style="font-size:12px;margin-bottom:6px">Tabelas necessárias no Supabase</div>
+        <div style="font-size:12px;color:var(--color-text-secondary);line-height:1.7">
+          <strong>estoque</strong> (id, livro_id, sede_id, quantidade, atualizado_em)<br>
+          <strong>fardamento</strong> (id, nome, sku, ncm, cfop, cst, preco, estoque_json)<br>
+          <strong>notas_nfe</strong> (id, ref, numero, chave, status, dados_json, criado_em)<br>
+          <strong>notas_nfce</strong> (id, ref, numero, chave, status, dados_json, criado_em)
+        </div>
+      </div>
+      <div style="margin-top:10px">
+        <button type="button" class="btn btn-sm" onclick="exportSqlSupabase()"><i class="ti ti-download" aria-hidden="true"></i> Baixar SQL de criação das tabelas</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div><!-- /main -->
+</div><!-- /app -->
+<script src="js/app.js"></script>
+</body>
+</html>

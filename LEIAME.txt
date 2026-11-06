@@ -1,0 +1,31 @@
+Escola Teste NF-e — projeto organizado
+========================================
+
+Pastas:
+  public/index.html   — interface
+  public/css/app.css  — estilos
+  public/js/app.js    — lógica e integração Focus NF
+  server.mjs          — servidor HTTP + proxy /api/focus
+
+Como usar
+---------
+1. Instale Node.js 18 ou superior.
+2. Na pasta sistema-nfe-escolar, execute:  npm start
+3. Abra no navegador:  http://localhost:3000
+   (outra porta: defina a variável de ambiente PORT)
+
+Proxy integrado
+---------------
+Com o campo "URL do proxy CORS" vazio em Configurações, o app chama a mesma origem em /api/focus/... O servidor encaminha para:
+  homologacao.focusnfe.com.br  (ambiente Homologação na tela)
+  api.focusnfe.com.br          (ambiente Produção na tela)
+
+O navegador envia o cabeçalho X-Focus-Env (hom ou prod) conforme o seletor de ambiente.
+
+Token
+-----
+O token da API Focus continua no navegador (sessionStorage ou localStorage, conforme a opção na tela). Não fica no disco do servidor.
+
+Proxy externo
+-------------
+Se precisar de outro proxy CORS, preencha o campo na configuração; esse URL tem prioridade sobre /api/focus.
